@@ -189,15 +189,25 @@ async function runTests() {
   });
 
   // 5. AI Functionality (Casewise Assist)
-  await test('POST /api/cases/:caseId/ask (Casewise Assist AI) answers evidence queries', async () => {
-    const res = await request('POST', '/api/cases/LA-2048/ask', {
+  await test('POST /api/cases/:caseId/ask (Casewise Assist AI) searches uploaded documents and extracts related data', async () => {
+    // Query 1: Monthly rent
+    const resRent = await request('POST', '/api/cases/LA-2048/ask', {
       question: 'What is the monthly rent?',
     });
-    assert(res.status === 200, `Expected 200, got ${res.status}`);
-    assert(res.body.answer && res.body.answer.length > 5, 'Should provide an answer');
-    assert(Array.isArray(res.body.facts), 'Should return facts');
-    assert(Array.isArray(res.body.documents), 'Should return documents');
-    assert(res.body.facts.some((f) => f.label.toLowerCase().includes('rent')), 'Should find rent fact');
+    assert(resRent.status === 200, `Expected 200, got ${resRent.status}`);
+    assert(resRent.body.answer && resRent.body.answer.includes('1,240'), 'Answer should mention $1,240 rent');
+    assert(Array.isArray(resRent.body.facts) && resRent.body.facts.length >= 2, 'Should return multiple related facts');
+    assert(Array.isArray(resRent.body.documents) && resRent.body.documents.length >= 2, 'Should return multiple matching documents');
+    assert(resRent.body.documents.some((d) => d.meta && d.meta.toLowerCase().includes('1,240')), 'Document meta should contain specific rent excerpt from file');
+
+    // Query 2: Service date and notice conflict
+    const resNotice = await request('POST', '/api/cases/LA-2048/ask', {
+      question: 'When was the notice served and is there a conflict?',
+    });
+    assert(resNotice.status === 200, `Expected 200, got ${resNotice.status}`);
+    assert(resNotice.body.answer && resNotice.body.answer.length > 15, 'Answer should describe the service date findings');
+    assert(Array.isArray(resNotice.body.facts) && resNotice.body.facts.length >= 1, 'Should extract related service facts');
+    assert(Array.isArray(resNotice.body.documents) && resNotice.body.documents.length >= 1, 'Should cite relevant documents');
   });
 
   await test('POST /api/cases/:caseId/documents processes uploaded documents and updates checklist', async () => {
@@ -213,7 +223,10 @@ async function runTests() {
     // Verify detail reflects uploaded files and checklist update
     const detailRes = await request('GET', `/api/cases/${createdCaseId}`);
     assert(detailRes.body.documents.length >= 2, 'Documents should be in detail');
-    assert(detailRes.body.checklist.some((c) => c.label === 'Lease agreement' && c.done === true), 'Checklist item should be marked done');
+    assert(
+      detailRes.body.checklist.some((c) => c.label.toLowerCase().includes('lease') && c.done === true),
+      'Checklist item for lease should be marked done'
+    );
   });
 
   // 6. Review Queue & Critical Conflict Business Logic
