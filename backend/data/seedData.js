@@ -50,7 +50,7 @@ export const SEED_DETAIL = {
     ],
   },
   'LA-2043': {
-    meta: { supervisor: 'Sarah Patel', nextDeadline: 'Jun 04', opened: 'May 15, 2025' },
+    meta: { supervisor: 'Sarah Patel', nextDeadline: 'Jun 04 · 7 days', opened: 'May 15, 2025' },
     flags: [
       { id: 'f3', kind: 'miss', label: 'Missing document', title: 'Hearing notice copy needed', body: 'Copy of initial denial notice received from social services.' },
     ],
@@ -58,6 +58,8 @@ export const SEED_DETAIL = {
       { label: 'Monthly benefits', value: '$450.00', source: 'Agency notice · p.1' },
       { label: 'Household income', value: '$1,180.00', source: 'Pay stubs · p.2' },
       { label: 'Appeal deadline', value: 'Jun 04, 2025', source: 'Agency notice' },
+      { label: 'Program', value: 'Supplemental Nutrition Assistance (SNAP)', source: 'Agency notice' },
+      { label: 'Primary language', value: 'English', source: 'Intake form' },
     ],
     documents: [
       { name: 'Benefits notice.pdf', meta: 'Notice · 2 pages', date: 'May 14, 2025' },
@@ -66,15 +68,17 @@ export const SEED_DETAIL = {
     timeline: [
       { date: 'May 14', text: 'Initial agency denial notice received' },
       { date: 'May 15', text: 'Case opened for benefits appeal' },
+      { date: 'May 26', text: 'Benefits appeal summary submitted for review' },
     ],
     checklist: [
       { label: 'Agency notice', done: true },
       { label: 'Income statement', done: true },
+      { label: 'Identification', done: true },
       { label: 'Appeal request form', done: false },
     ],
   },
   'LA-2039': {
-    meta: { supervisor: 'Sarah Patel', nextDeadline: 'Jun 12', opened: 'May 02, 2025' },
+    meta: { supervisor: 'Sarah Patel', nextDeadline: 'Jun 12 · 14 days', opened: 'May 02, 2025' },
     flags: [
       { id: 'f4', kind: 'crit', label: 'Critical conflict', title: 'Entry date discrepancy', body: 'Intake reports March 3 while border documentation indicates March 5.' },
       { id: 'f5', kind: 'miss', label: 'Missing document', title: 'Certified translation pending', body: 'Foreign birth certificate translation must be notarized.' },
@@ -83,13 +87,17 @@ export const SEED_DETAIL = {
       { label: 'Arrival date', value: 'March 3, 2025', source: 'Intake form · p.1' },
       { label: 'Hearing date', value: 'June 10, 2025', source: 'Court notice · p.2' },
       { label: 'Country of origin', value: 'Somalia', source: 'Intake form' },
+      { label: 'Relief sought', value: 'Asylum / Withholding of Removal', source: 'Intake form' },
+      { label: 'Primary language', value: 'Somali (Interpreter required)', source: 'Intake form' },
     ],
     documents: [
       { name: 'Intake form.pdf', meta: 'Intake · 5 pages', date: 'May 02, 2025' },
       { name: 'Court notice.pdf', meta: 'Court · 3 pages', date: 'May 05, 2025' },
+      { name: 'Country conditions report.pdf', meta: 'Reference · 22 pages', date: 'May 18, 2025' },
     ],
     timeline: [
       { date: 'May 02', text: 'Case opened' },
+      { date: 'May 05', text: 'Immigration court hearing notice logged' },
       { date: 'May 27', text: 'Chronology submitted for review' },
     ],
     checklist: [
@@ -97,6 +105,69 @@ export const SEED_DETAIL = {
       { label: 'Court notice', done: true },
       { label: 'Certified translation', done: false },
       { label: 'Declaration statement', done: false },
+    ],
+  },
+  'LA-2031': {
+    meta: { supervisor: 'Sarah Patel', nextDeadline: 'Jun 20 · Custody Conference', opened: 'May 18, 2025' },
+    flags: [],
+    facts: [
+      { label: 'Matter', value: 'Custody & Child Support', source: 'Petition · p.1' },
+      { label: 'Minor child', value: 'Leo Wilson (Age 6)', source: 'Birth Certificate' },
+      { label: 'Current arrangement', value: 'Informal 50/50 shared parenting', source: 'Intake form' },
+      { label: 'Mediation date', value: 'June 20, 2025 at 10:00 AM', source: 'Court Scheduling Order' },
+      { label: 'Primary language', value: 'English', source: 'Intake form' },
+    ],
+    documents: [
+      { name: 'Petition for custody.pdf', meta: 'Court Filing · 8 pages', date: 'May 18, 2025' },
+      { name: 'Financial affidavit.pdf', meta: 'Affidavit · 4 pages', date: 'May 22, 2025' },
+      { name: 'Parenting plan proposal.docx', meta: 'Draft · 6 pages', date: 'May 25, 2025' },
+    ],
+    timeline: [
+      { date: 'May 18', text: 'Case opened · Initial custody petition filed' },
+      { date: 'May 22', text: 'Financial disclosures verified and served' },
+      { date: 'May 25', text: 'Parenting plan draft completed for attorney review' },
+      { date: 'Jun 20', text: 'Court mediation / conciliation scheduled' },
+    ],
+    checklist: [
+      { label: 'Petition / Complaint', done: true },
+      { label: 'Financial affidavit', done: true },
+      { label: 'Income documentation', done: true },
+      { label: 'Proof of service', done: true },
+      { label: 'Proposed parenting plan', done: true },
+    ],
+  },
+  'LA-2027': {
+    meta: { supervisor: 'Sarah Patel', nextDeadline: 'Jul 01 · Inspection Deadline', opened: 'Apr 28, 2025' },
+    flags: [
+      { id: 'f6', kind: 'crit', label: 'Critical conflict', title: 'Inspection notice timing discrepancy', body: 'Landlord asserts 24-hour notice was served on May 8, but tenant communication logs show entry occurred without prior notice.' },
+      { id: 'f7', kind: 'miss', label: 'Missing document', title: 'City housing inspection report missing', body: 'Municipal code violation report has been requested from Department of Building Inspection but not yet received.' },
+    ],
+    facts: [
+      { label: 'Address', value: '452 Elm St, Unit 2A', source: 'Lease · p.1' },
+      { label: 'Reported habitability defects', value: 'Severe water intrusion and plumbing leaks', source: 'Tenancy complaint form' },
+      { label: 'Notice of repair served', value: 'April 30, 2025', source: 'Certified mail receipt' },
+      { label: 'Landlord response window', value: '30 calendar days (expired)', source: 'Housing Code § 14-2' },
+      { label: 'Primary language', value: 'Mandarin (English interpreter needed)', source: 'Intake form' },
+    ],
+    documents: [
+      { name: 'Lease agreement.pdf', meta: 'Lease · 10 pages', date: 'Apr 28, 2025' },
+      { name: 'Notice of repair request.pdf', meta: 'Notice · 2 pages', date: 'Apr 30, 2025' },
+      { name: 'Photo evidence (leak).jpg', meta: 'Image · 3.2 MB', date: 'May 02, 2025' },
+      { name: 'Certified mail receipt.pdf', meta: 'Proof · 1 page', date: 'May 05, 2025' },
+    ],
+    timeline: [
+      { date: 'Apr 28', text: 'Case opened for tenant habitability defense' },
+      { date: 'Apr 30', text: 'Formal 30-day notice of repair served via certified mail' },
+      { date: 'May 08', text: 'Unscheduled landlord entry reported by client' },
+      { date: 'May 20', text: 'Request filed for city municipal housing inspection' },
+    ],
+    checklist: [
+      { label: 'Lease agreement', done: true },
+      { label: 'Notice of repair request', done: true },
+      { label: 'Photographic evidence', done: true },
+      { label: 'Certified mail proof of service', done: true },
+      { label: 'Inspection report', done: false },
+      { label: 'Rent withholding notice', done: false },
     ],
   },
 };
@@ -193,7 +264,8 @@ export const CHECKLIST_TEMPLATES = {
     'Inspection report',
     'Notice of repair request',
     'Photographic evidence',
-    'Communication log',
+    'Certified mail proof of service',
+    'Rent withholding notice',
   ],
   'Public Benefits': [
     'Agency notice of action',

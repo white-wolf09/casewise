@@ -123,14 +123,30 @@ async function runTests() {
     assert(res.body.some((c) => c.caseId === 'LA-2048'), 'Should include LA-2048');
   });
 
-  await test('GET /api/cases/:caseId returns full case detail', async () => {
+  await test('GET /api/cases/:caseId returns full case detail with supervisor, timeline, facts, flags', async () => {
     const res = await request('GET', '/api/cases/LA-2048');
     assert(res.status === 200, `Expected 200, got ${res.status}`);
     assert(res.body.caseId === 'LA-2048', 'Case ID should match');
-    assert(Array.isArray(res.body.facts), 'Facts should be an array');
+    assert(res.body.meta?.supervisor, 'Supervisor should not be empty');
+    assert(Array.isArray(res.body.facts) && res.body.facts.length >= 4, 'Facts should have auto-extracted items');
     assert(Array.isArray(res.body.documents), 'Documents should be an array');
     assert(Array.isArray(res.body.checklist), 'Checklist should be an array');
-    assert(Array.isArray(res.body.flags), 'Flags should be an array');
+    assert(Array.isArray(res.body.flags) && res.body.flags.length >= 2, 'Flags should contain attention items');
+    assert(Array.isArray(res.body.timeline) && res.body.timeline.length >= 3, 'Timeline should have milestones');
+
+    // Also verify LA-2027 has supervisor, timeline, flags
+    const res2027 = await request('GET', '/api/cases/LA-2027');
+    assert(res2027.status === 200, 'LA-2027 should return 200');
+    assert(res2027.body.meta?.supervisor, 'LA-2027 should have supervisor');
+    assert(res2027.body.flags.length === 2, 'LA-2027 should have 2 open flags');
+    assert(res2027.body.timeline.length >= 2, 'LA-2027 should have timeline');
+
+    // Also verify LA-2031 has supervisor, timeline, checklist
+    const res2031 = await request('GET', '/api/cases/LA-2031');
+    assert(res2031.status === 200, 'LA-2031 should return 200');
+    assert(res2031.body.meta?.supervisor, 'LA-2031 should have supervisor');
+    assert(res2031.body.timeline.length >= 2, 'LA-2031 should have timeline');
+    assert(res2031.body.checklist.length >= 4, 'LA-2031 should have checklist');
   });
 
   await test('GET /api/cases/:caseId rejects invalid case ID', async () => {
@@ -139,7 +155,7 @@ async function runTests() {
   });
 
   let createdCaseId;
-  await test('POST /api/cases creates a new case with intake checklist', async () => {
+  await test('POST /api/cases creates a new case with AI intake assessment, supervisor, timeline, flags, facts', async () => {
     const res = await request('POST', '/api/cases', {
       clientFirst: 'Carlos',
       clientLast: 'Mendoza',
@@ -151,6 +167,16 @@ async function runTests() {
     assert(res.body.clientName === 'Carlos Mendoza', 'Client name should match');
     assert(res.body.caseId.startsWith('LA-'), 'Should generate LA- case ID');
     createdCaseId = res.body.caseId;
+
+    // Verify the newly created case has full detail (supervisor, timeline, flags, facts, checklist)
+    const detailRes = await request('GET', `/api/cases/${createdCaseId}`);
+    assert(detailRes.status === 200, 'Created case detail should return 200');
+    assert(detailRes.body.meta?.supervisor, 'Created case should have supervisor');
+    assert(detailRes.body.meta?.nextDeadline, 'Created case should have next deadline');
+    assert(Array.isArray(detailRes.body.flags) && detailRes.body.flags.length >= 1, 'Created case should have initial flags');
+    assert(Array.isArray(detailRes.body.facts) && detailRes.body.facts.length >= 4, 'Created case should have facts / AI suggestions');
+    assert(Array.isArray(detailRes.body.timeline) && detailRes.body.timeline.length >= 2, 'Created case should have timeline milestones');
+    assert(Array.isArray(detailRes.body.checklist) && detailRes.body.checklist.length >= 4, 'Created case should have checklist');
   });
 
   await test('POST /api/cases/:caseId/checklist/toggle toggles an item', async () => {

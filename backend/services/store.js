@@ -12,7 +12,7 @@ import User from '../models/User.js';
 import Case from '../models/Case.js';
 import Review from '../models/Review.js';
 import Deadline from '../models/Deadline.js';
-import { analyzeUploadedDocuments } from './aiService.js';
+import { analyzeUploadedDocuments, generateCaseIntakeAI } from './aiService.js';
 
 const PALETTE = ['red', 'blue', 'lilac', 'green', 'peach'];
 const RETURNED_TO_ME = 2;
@@ -30,26 +30,6 @@ let memReports = structuredClone(SEED_REPORTS);
 let createdCount = 0;
 
 let dbInitialized = false;
-
-function emptyDetail(c) {
-  const typeTemplates = CHECKLIST_TEMPLATES[c.type] || [
-    'Client intake form',
-    'Identification',
-    'Primary evidence document',
-  ];
-
-  return {
-    meta: { supervisor: 'Sarah Patel', nextDeadline: c.deadline || '—', opened: today() },
-    flags: [],
-    facts: [
-      { label: 'Case type', value: c.type, source: 'Intake form' },
-      { label: 'Assigned worker', value: c.assignee, source: 'Assignment record' },
-    ],
-    documents: [],
-    timeline: [{ date: today(), text: 'Case opened' }],
-    checklist: typeTemplates.map((label) => ({ label, done: false })),
-  };
-}
 
 function view(c) {
   const detail = memDetail[c.caseId];
@@ -72,15 +52,15 @@ export async function initStore() {
     const caseCount = await Case.countDocuments();
     if (caseCount === 0) {
       const caseDocs = SEED_CASES.map((c) => {
-        const det = SEED_DETAIL[c.caseId] || emptyDetail(c);
+        const det = SEED_DETAIL[c.caseId];
         return {
           ...c,
-          meta: det.meta,
-          flags: det.flags,
-          facts: det.facts,
-          documents: det.documents,
-          timeline: det.timeline,
-          checklist: det.checklist,
+          meta: det?.meta || { supervisor: 'Sarah Patel', nextDeadline: c.deadline, opened: today() },
+          flags: det?.flags || [],
+          facts: det?.facts || [],
+          documents: det?.documents || [],
+          timeline: det?.timeline || [],
+          checklist: det?.checklist || [],
         };
       });
       await Case.insertMany(caseDocs);
@@ -115,7 +95,7 @@ export const store = {
   },
 
   async getDashboard() {
-    const flags = Object.values(memDetail).flatMap((d) => d.flags);
+    const flags = Object.values(memDetail).flatMap((d) => d.flags || []);
     const totalFlags = memCases.reduce((n, c) => n + view(c).openFlags, 0);
     const critical = flags.filter((f) => f.kind === 'crit').length;
 
@@ -143,9 +123,34 @@ export const store = {
   async getCaseById(caseId) {
     const base = memCases.find((x) => x.caseId === caseId);
     if (!base) return null;
-    if (!memDetail[caseId]) {
-      memDetail[caseId] = emptyDetail(base);
+
+    if (!memDetail[caseId] || !memDetail[caseId].flags || memDetail[caseId].flags.length === 0) {
+      if (!memDetail[caseId]) {
+        // Auto-generate AI case assessment if detail is missing
+        const parts = base.clientName.split(' ');
+        const aiAssessment = await generateCaseIntakeAI({
+          clientFirst: parts[0] || 'Client',
+          clientLast: parts.slice(1).join(' ') || 'Case',
+          type: base.type,
+          language: 'English',
+          assignee: base.assignee,
+        });
+
+        memDetail[caseId] = {
+          meta: {
+            supervisor: aiAssessment.supervisor,
+            nextDeadline: aiAssessment.nextDeadline,
+            opened: today(),
+          },
+          flags: aiAssessment.flags,
+          facts: aiAssessment.facts,
+          documents: [],
+          timeline: aiAssessment.timeline,
+          checklist: aiAssessment.checklist,
+        };
+      }
     }
+
     const detail = memDetail[caseId];
     return {
       ...view(base),
@@ -159,6 +164,17 @@ export const store = {
     const caseId = `LA-${num}`;
     const clientName = `${input.clientFirst} ${input.clientLast}`.trim();
 
+    // Call Groq AI to generate full case structure (supervisor, timeline, flags, facts/suggestions, checklist)
+    const aiAssessment = await generateCaseIntakeAI({
+      clientFirst: input.clientFirst,
+      clientLast: input.clientLast,
+      type: input.type,
+      language: input.language,
+      assignee: input.assignee,
+    });
+
+    const deadlineShort = (aiAssessment.nextDeadline || 'Jun 14').split(' · ')[0];
+
     const created = {
       caseId,
       clientName,
@@ -166,19 +182,23 @@ export const store = {
       tone: PALETTE[n % PALETTE.length],
       type: input.type,
       assignee: input.assignee,
-      deadline: '—',
-      health: 100,
-      openFlags: 0,
-      status: 'Active',
+      deadline: deadlineShort,
+      health: aiAssessment.health || 80,
+      openFlags: aiAssessment.flags.length,
+      status: aiAssessment.status || 'Active',
     };
 
     const detail = {
-      ...emptyDetail(created),
-      facts: [
-        { label: 'Case type', value: input.type, source: 'Intake form' },
-        { label: 'Primary language', value: input.language, source: 'Intake form' },
-        { label: 'Assigned worker', value: input.assignee, source: 'Assignment record' },
-      ],
+      meta: {
+        supervisor: aiAssessment.supervisor || 'Sarah Patel, Supervising Attorney',
+        nextDeadline: aiAssessment.nextDeadline || 'Jun 14 · Response Due',
+        opened: today(),
+      },
+      flags: aiAssessment.flags,
+      facts: aiAssessment.facts,
+      documents: [],
+      timeline: aiAssessment.timeline,
+      checklist: aiAssessment.checklist,
     };
 
     memCases = [created, ...memCases];
@@ -248,7 +268,23 @@ export const store = {
   async uploadDocuments(caseId, files) {
     const base = memCases.find((x) => x.caseId === caseId);
     if (!base) return null;
-    if (!memDetail[caseId]) memDetail[caseId] = emptyDetail(base);
+    if (!memDetail[caseId]) {
+      const aiAssessment = await generateCaseIntakeAI({
+        clientFirst: base.clientName.split(' ')[0],
+        clientLast: base.clientName.split(' ')[1] || '',
+        type: base.type,
+        language: 'English',
+        assignee: base.assignee,
+      });
+      memDetail[caseId] = {
+        meta: { supervisor: aiAssessment.supervisor, nextDeadline: aiAssessment.nextDeadline, opened: today() },
+        flags: aiAssessment.flags,
+        facts: aiAssessment.facts,
+        documents: [],
+        timeline: aiAssessment.timeline,
+        checklist: aiAssessment.checklist,
+      };
+    }
     const detail = memDetail[caseId];
 
     const fmt = (b) =>
@@ -269,7 +305,7 @@ export const store = {
       ...detail.timeline,
     ];
 
-    // Trigger AI document analysis and extraction
+    // Trigger AI document analysis and extraction via Groq
     try {
       const aiResult = await analyzeUploadedDocuments({
         caseDetail: { ...base, ...detail },
