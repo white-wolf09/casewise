@@ -138,3 +138,4 @@ casewise/
 | `GET`  | `/api/reports` | KPI impact, time-to-evidence, targets |
 | `GET`  | `/api/search?q=...` | Global search across cases and clients |
 | `GET`  | `/api/notifications` | Pending reviews and upcoming deadline alerts |
+# casewise
