@@ -12,8 +12,8 @@ const PALETTE = ['red', 'blue', 'lilac', 'green', 'peach'];
 const RETURNED_TO_ME = 2;
 
 const DEMO_USERS = [
-  { email: 'maya@gmail.com', password: 'Demo@12345', name: 'Maya Brooks', role: 'Case Worker' },
-  { email: 'john@gmail.com', password: '12345678', name: 'John Abraham', role: 'Case Worker' },
+  { email: 'maya@communitylegal.org', password: 'Demo@12345', name: 'Maya Brooks', role: 'Case Worker' },
+  { email: 'john@communitylegal.org', password: '12345678', name: 'John Abraham', role: 'Case Worker' },
 ];
 
 const SEED_CASES = [
