@@ -120,13 +120,20 @@ export function AskModal({ caseId, onClose }) {
       </form>
       {error && <div className="err">{error}</div>}
       {result && (
-        <div className="ans">
+        <div className="ans space-y-4 overflow-y-auto max-h-[70vh] p-2">
           <div style={{ fontWeight: 600 }}>{result.answer}</div>
           {result.facts.map((f) => (
-            <div key={f.label} className="evr"><div style={{ flex: 1 }}><b>{f.label}: {f.value}</b><div className="sm">{f.source}</div></div></div>
+            <div key={f.label} className="evr flex flex-col gap-1 p-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="font-medium">{f.label}: {f.value}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 break-words" title={f.source}>{f.source}</div>
+            </div>
           ))}
+
           {result.documents.map((d) => (
-            <div key={d.name} className="evr"><FileText size={15} /><div style={{ flex: 1 }}><b>{d.name}</b><div className="sm">{d.meta}</div></div></div>
+            <div key={d.name} className="evr flex flex-col gap-1 p-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2"><FileText size={15} />{d.name}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 break-words" title={d.meta}>{d.meta}</div>
+            </div>
           ))}
         </div>
       )}
