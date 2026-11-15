@@ -34,7 +34,27 @@ export function UploadModal({ caseId, onClose }) {
     setBusy(true);
     setError('');
     try {
-      const res = await api.uploadDocuments(caseId, files.map((f) => ({ name: f.name, size: f.size })));
+      const toBase64 = (file) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const res = reader.result || '';
+            const b64 = typeof res === 'string' && res.includes(',') ? res.split(',')[1] : '';
+            resolve(b64);
+          };
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(file);
+        });
+
+      const filePayloads = await Promise.all(
+        files.map(async (f) => ({
+          name: f.name,
+          size: f.size,
+          base64: await toBase64(f),
+        }))
+      );
+
+      const res = await api.uploadDocuments(caseId, filePayloads);
       bump();
       toast(`${res.added} file${res.added > 1 ? 's' : ''} uploaded`);
       onClose();

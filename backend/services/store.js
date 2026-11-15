@@ -13,6 +13,7 @@ import Case from '../models/Case.js';
 import Review from '../models/Review.js';
 import Deadline from '../models/Deadline.js';
 import { analyzeUploadedDocuments, generateCaseIntakeAI } from './aiService.js';
+import { extractDocumentText } from '../utils/documentExtractor.js';
 
 const PALETTE = ['red', 'blue', 'lilac', 'green', 'peach'];
 const RETURNED_TO_ME = 2;
@@ -290,14 +291,21 @@ export const store = {
     const fmt = (b) =>
       b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
 
-    const uploadedDocs = files.map((d) => {
-      const ext = d.name.includes('.') ? d.name.split('.').pop().toUpperCase() : 'DOC';
-      return {
-        name: d.name,
-        meta: `${ext} · ${fmt(d.size)}`,
-        date: today(),
-      };
-    });
+    const uploadedDocs = await Promise.all(
+      files.map(async (d) => {
+        const ext = d.name.includes('.') ? d.name.split('.').pop().toUpperCase() : 'DOC';
+        const text = await extractDocumentText(d);
+        if (text) {
+          console.log(`[Document Extractor] Successfully extracted ${text.length} characters from ${d.name}`);
+        }
+        return {
+          name: d.name,
+          meta: `${ext} · ${fmt(d.size)}`,
+          date: today(),
+          content: text || '',
+        };
+      })
+    );
 
     uploadedDocs.forEach((d) => detail.documents.unshift(d));
     detail.timeline = [

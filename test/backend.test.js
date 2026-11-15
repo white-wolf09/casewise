@@ -229,6 +229,31 @@ async function runTests() {
     );
   });
 
+  await test('POST /api/cases/:caseId/documents extracts text from uploaded file and answers queries about it', async () => {
+    const docText = 'The client Muhammad Shawal suffered severe physical assault and unlawful detention by armed forces on October 12, sustaining severe physical injuries and detention for 72 hours.';
+    const docB64 = Buffer.from(docText).toString('base64');
+
+    const uploadRes = await request('POST', `/api/cases/${createdCaseId}/documents`, {
+      files: [
+        { name: 'Demo Case 1.docx', size: docText.length, base64: docB64 },
+      ],
+    });
+    assert(uploadRes.status === 200, 'Upload should succeed');
+
+    const askRes = await request('POST', `/api/cases/${createdCaseId}/ask`, {
+      question: 'What is Physical Assault and Detention?',
+    });
+    assert(askRes.status === 200, 'Ask evidence should succeed');
+    assert(
+      askRes.body.answer.toLowerCase().includes('assault') || askRes.body.answer.toLowerCase().includes('detention'),
+      'Answer should identify assault and detention from uploaded document'
+    );
+    assert(
+      askRes.body.documents.some((d) => d.name === 'Demo Case 1.docx'),
+      'Documents should cite Demo Case 1.docx'
+    );
+  });
+
   // 6. Review Queue & Critical Conflict Business Logic
   await test('GET /api/reviews returns review queue', async () => {
     const res = await request('GET', '/api/reviews');

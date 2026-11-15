@@ -115,6 +115,8 @@ export function assertUpload(files = []) {
     name: clean(f.name).slice(0, 120),
     ext: f.name.split('.').pop().toLowerCase(),
     size: f.size,
+    base64: f.base64 || '',
+    content: f.content || '',
   }));
 }
 

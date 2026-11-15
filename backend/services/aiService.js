@@ -197,6 +197,56 @@ function fallbackAskEvidence(caseDetail, question) {
   const isRepair = qLower.includes('repair') || qLower.includes('leak') || qLower.includes('mold') || qLower.includes('defect') || qLower.includes('inspect') || qLower.includes('damage');
   const isMissing = qLower.includes('miss') || qLower.includes('need') || qLower.includes('require') || qLower.includes('check') || qLower.includes('checklist');
 
+  // 0. Check if any uploaded document has real extracted text matching the query
+  const terms = qLower.split(/[^\p{L}\p{N}]+/u).filter((t) => t.length > 2);
+  const docsWithContentMatches = [];
+
+  for (const d of docs) {
+    if (d.content && typeof d.content === 'string' && d.content.trim().length > 10) {
+      const textLower = d.content.toLowerCase();
+      const matchedTerms = terms.filter((t) => textLower.includes(t));
+      if (matchedTerms.length > 0) {
+        const sentences = d.content.split(/[.\n\r]+/).map((s) => s.trim()).filter((s) => s.length > 15);
+        const bestSentence =
+          sentences.find((s) => {
+            const sLow = s.toLowerCase();
+            return matchedTerms.filter((t) => sLow.includes(t)).length >= Math.min(2, matchedTerms.length);
+          }) || sentences.find((s) => matchedTerms.some((t) => s.toLowerCase().includes(t)));
+
+        if (bestSentence) {
+          docsWithContentMatches.push({
+            name: d.name,
+            matchedTerms,
+            snippet: bestSentence.slice(0, 180),
+          });
+        }
+      }
+    }
+  }
+
+  if (docsWithContentMatches.length > 0) {
+    const primary = docsWithContentMatches[0];
+    answer = `Based on the uploaded document "${primary.name}", the records state: "${primary.snippet}".`;
+
+    docsWithContentMatches.forEach((m) => {
+      extractedFacts.push({
+        label: `Document evidence (${m.matchedTerms.slice(0, 2).join(' & ') || 'Finding'})`,
+        value: m.snippet,
+        source: `${m.name} · Extracted Text`,
+      });
+      matchingDocs.push({
+        name: m.name,
+        meta: `Excerpt: "${m.snippet}"`,
+      });
+    });
+
+    return {
+      answer,
+      facts: extractedFacts,
+      documents: matchingDocs,
+    };
+  }
+
   // Case-specific extraction
   if (isRent) {
     const rentFact = existingFacts.find((f) => f.label.toLowerCase().includes('rent'));
@@ -597,11 +647,16 @@ export async function askEvidence({ caseDetail, question }) {
   // Assemble full document text and knowledge for Groq
   const documentsWithContent = (caseDetail.documents || []).map((d) => {
     const summary = getDocumentContentSummary(d.name);
+    const textContent =
+      d.content && typeof d.content === 'string' && d.content.trim().length > 0
+        ? d.content.trim().slice(0, 30000)
+        : summary.text;
+
     return {
       name: d.name,
       documentType: summary.type,
       fileDate: d.date,
-      contentSummary: summary.text,
+      documentContent: textContent,
       keySnippets: summary.snippets,
     };
   });
@@ -620,18 +675,18 @@ export async function askEvidence({ caseDetail, question }) {
   };
 
   const systemPrompt = `You are Casewise Assist AI, an expert legal intelligence and evidence discovery assistant for legal aid caseworkers.
-The caseworker is asking a specific question/query about a case and wants to search across all uploaded documents, case facts, and records to retrieve precise, related data.
+The caseworker is asking a specific question/query about a case and wants you to search through all uploaded documents, case records, and client files to extract specific, grounded evidence and answers.
 
-Your mission:
-1. Search through the uploaded documents, their content summaries, snippets, and case facts to answer the query.
-2. In the "answer" field, provide a clear, comprehensive, direct legal answer (2-3 sentences) directly answering the question based on the evidence.
-3. In "facts", extract 2 to 5 specific data points related to the query. Each fact must have:
-   - "label": Clear title of the data point (e.g. "Monthly Rent", "Notice Date", "Due Date", "Grounds for Eviction", "Landlord Name", "Disputed Amount")
-   - "value": The specific data, date, dollar figure, or legal finding
-   - "source": The exact source document and citation (e.g. "Lease agreement.pdf · Section 3, p. 2", "Notice to Quit.pdf · Page 1")
-4. In "documents", list the relevant uploaded documents that contain evidence related to the query. For EACH document:
-   - "name": The document filename (e.g. "Lease agreement.pdf")
-   - "meta": A specific, relevant excerpt, finding, or key quote from that document answering the query (e.g. "Page 2: Monthly rent set at $1,240.00 due on the 1st of every month")
+Instructions:
+1. Carefully read and search through the "documents" array, including each document's "documentContent" (which contains the extracted full text of the uploaded PDF or DOCX file), case facts, and client details.
+2. Directly answer the caseworker's question in the "answer" field (2-4 sentences). If the uploaded documents mention specific incidents (e.g. physical assault, detention, persecution, injuries, dates, locations, police actions, amounts, or legal terms), explain the exact details as described in the documents.
+3. In "facts", extract 2 to 5 specific data points or quotes found in the uploaded documents directly answering the query. Each fact must have:
+   - "label": Clear title of the data point (e.g. "Physical Assault Incident", "Detention Duration", "Perpetrators", "Notice Date", "Monthly Rent")
+   - "value": The specific data, description, date, or finding from the document text
+   - "source": The exact document filename and citation (e.g. "Demo Case 1.docx · Client Statement", "Demo Case 1.pdf · Incident Report")
+4. In "documents", list the uploaded documents that contain the relevant data. For EACH document:
+   - "name": The document filename (e.g. "Demo Case 1.docx")
+   - "meta": A specific excerpt, key quote, or finding from that document directly answering the query (e.g. "Page 2: 'Client was detained for 3 days and subjected to physical assault by local authorities.'")
 
 Return STRICTLY valid JSON with no markdown formatting outside the JSON object.
 
