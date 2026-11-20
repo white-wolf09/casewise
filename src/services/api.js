@@ -7,10 +7,16 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
 
 // Railway backend URL from environment variables.
 // Local development falls back to Vite's /api proxy.
-const API_URL = import.meta.env.VITE_API_URL || '';
+// Railway backend URL from environment variables.
+// Local development falls back to Vite's /api proxy.
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+const API_URL =
+  rawApiUrl && !/^https?:\/\//i.test(rawApiUrl)
+    ? `https://${rawApiUrl}`
+    : rawApiUrl;
 
 const http = axios.create({
-  baseURL: `${API_URL.replace(/\/$/, '')}/api`,
+  baseURL: `${API_URL}/api`,
 });
 
 // Attach authentication token to every request
