@@ -24,8 +24,7 @@ export default function Login() {
       await login(email, password, remember);
       navigate('/overview');
     } catch (err) {
-      setErrors(err.errors || { form: 'Incorrect email or password.' });
-      setBusy(false);
+setErrors(err.errors || { form: err.message || 'Incorrect email or password.' });      setBusy(false);
     }
   };
 
