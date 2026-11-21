@@ -54,25 +54,28 @@ export default function Cases() {
           <div>Client / case</div><div>Assignee</div><div>Next deadline</div><div>Health</div><div>Flags</div><div>Status</div><div />
         </div>
 
-        {!cases ? <Loading /> : shown.length ? shown.map((c) => (
-          <Link key={c.caseId} to={`/cases/${c.caseId}`} className="row" style={{ gridTemplateColumns: COLS }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
-              <Avatar ini={c.ini} tone={c.tone} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 600 }}>{c.clientName}</div>
-                <div className="sm">{c.caseId} · {c.type}</div>
+        {/* Scrollable results container */}
+        <div style={{ maxHeight: 'calc(100vh - 340px)', minHeight: '240px', overflowY: 'auto' }}>
+          {!cases ? <Loading /> : shown.length ? shown.map((c) => (
+            <Link key={c.caseId} to={`/cases/${c.caseId}`} className="row" style={{ gridTemplateColumns: COLS }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
+                <Avatar ini={c.ini} tone={c.tone} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 600 }}>{c.clientName}</div>
+                  <div className="sm">{c.caseId} · {c.type}</div>
+                </div>
               </div>
-            </div>
-            <div>{who(c.assignee, user)}</div>
-            <div className="dl"><Calendar size={14} />{c.deadline}</div>
-            <div className="hl"><Bar value={c.health} /><span>{c.health}%</span></div>
-            <div className={c.openFlags ? 'red' : 'muted'} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {c.openFlags ? <><AlertTriangle size={14} />{c.openFlags} open</> : 'None'}
-            </div>
-            <div><Tag tone={STATUS_TONE[c.status]}>{c.status}</Tag></div>
-            <ChevronRight size={16} className="muted" />
-          </Link>
-        )) : <div className="empty">No cases match these filters.</div>}
+              <div>{who(c.assignee, user)}</div>
+              <div className="dl"><Calendar size={14} />{c.deadline}</div>
+              <div className="hl"><Bar value={c.health} /><span>{c.health}%</span></div>
+              <div className={c.openFlags ? 'red' : 'muted'} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {c.openFlags ? <><AlertTriangle size={14} />{c.openFlags} open</> : 'None'}
+              </div>
+              <div><Tag tone={STATUS_TONE[c.status]}>{c.status}</Tag></div>
+              <ChevronRight size={16} className="muted" />
+            </Link>
+          )) : <div className="empty">No cases match these filters.</div>}
+        </div>
 
         {cases && <div className="foot sm">Showing {shown.length} of {cases.length} cases</div>}
       </Card>

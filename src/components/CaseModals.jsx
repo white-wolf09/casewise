@@ -8,8 +8,18 @@ const fmt = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max
 function Shell({ eyebrow, title, sub, onClose, children, footer }) {
   return (
     <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-modal="true">
-        <div className="mh">
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: 'calc(100vh - 48px)',
+          overflow: 'hidden',
+        }}
+      >
+        <div className="mh" style={{ flexShrink: 0 }}>
           <div>
             <div className="eyebrow">{eyebrow}</div>
             <h2 style={{ marginTop: 6 }}>{title}</h2>
@@ -17,8 +27,19 @@ function Shell({ eyebrow, title, sub, onClose, children, footer }) {
           </div>
           <button className="btn-ghost" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </div>
-        <div className="mb">{children}</div>
-        <div className="mf">{footer}</div>
+
+        <div
+          className="mb"
+          style={{
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflowY: 'auto',
+          }}
+        >
+          {children}
+        </div>
+
+        <div className="mf" style={{ flexShrink: 0 }}>{footer}</div>
       </div>
     </div>
   );
@@ -120,19 +141,19 @@ export function AskModal({ caseId, onClose }) {
       </form>
       {error && <div className="err">{error}</div>}
       {result && (
-        <div className="ans space-y-4 overflow-y-auto max-h-[70vh] p-2">
-          <div style={{ fontWeight: 600 }}>{result.answer}</div>
+        <div className="ans" style={{ marginTop: 14 }}>
+          <div style={{ fontWeight: 600, marginBottom: 10 }}>{result.answer}</div>
           {result.facts.map((f) => (
-            <div key={f.label} className="evr flex flex-col gap-1 p-2 border-b border-gray-200 dark:border-gray-700">
-              <div className="font-medium">{f.label}: {f.value}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 break-words" title={f.source}>{f.source}</div>
+            <div key={f.label} className="evr">
+              <div><b>{f.label}:</b> {f.value}</div>
+              <div className="sm" style={{ wordBreak: 'break-word' }} title={f.source}>{f.source}</div>
             </div>
           ))}
 
           {result.documents.map((d) => (
-            <div key={d.name} className="evr flex flex-col gap-1 p-2 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2"><FileText size={15} />{d.name}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 break-words" title={d.meta}>{d.meta}</div>
+            <div key={d.name} className="evr">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><FileText size={15} />{d.name}</div>
+              <div className="sm" style={{ wordBreak: 'break-word' }} title={d.meta}>{d.meta}</div>
             </div>
           ))}
         </div>
